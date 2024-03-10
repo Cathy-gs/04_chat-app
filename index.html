@@ -1,239 +1,25 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
-<meta charset="utf-8">
-<title>Firebase_version9_RealtimeDB(G'sACADEMY初学者用サンプル)</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="css/reset.css">
+    <link rel="stylesheet" href="css/style_index.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kaisei+Opti&display=swap" rel="stylesheet">
+    
 </head>
 <body>
+    <main>
+        <div class="main-contents">
+            <img src="img/imalunch.png" alt="" class="">
+            <a href="main.html" class="btntextchange"><span>気になる?</span><span>行きたい！</span></a>
+        </div>
 
-<!-- コンテンツ表示画面 -->
-
-<div>
-    <div> 名前：<input type="text" id="uname"> </div>
-    <div>
-        <textarea id="text" cols="30" rows="10"></textarea>
-        <button id="send">送信</button>
-    </div>
-    <div id="output" style="overflow: auto; height: 300px;"></div>
-</div>
-<!--/ コンテンツ表示画面 -->
-
-
-
-<!-- JQuery -->
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<!-- JQuery -->
-
-
-<!--** 以下Firebase **-->
-
-<!-- Firebaseから貼り付け -->
-<script type="module">
-    // Import the functions you need from the SDKs you need
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    // ここに書いた関数しか使えない
-    import { getDatabase, ref, push, set, update, onChildAdded, remove, onChildChanged, onChildRemoved  } 
-    // 関数の参照元 バージョンを合わせる
-    from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-   
-    // TODO: Add SDKs for Firebase products that you want to use
-    // https://firebase.google.com/docs/web/setup#available-libraries
-  
-    // Your web app's Firebase configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyA1he7xQoZcPyBcI9wYC5BZk9sK6y0nBo4",
-      authDomain: "example-8a6aa.firebaseapp.com",
-      projectId: "example-8a6aa",
-      storageBucket: "example-8a6aa.appspot.com",
-      messagingSenderId: "881670600379",
-      appId: "1:881670600379:web:a6536c2bf6e66ec1719b9e"
-    };
-  
-    // Initialize Firebase
-    // FireBaseに接続する
-    const app = initializeApp(firebaseConfig);
-
-    // リアルタイムDBに接続する
-    const db = getDatabase(app);
-    const dbRef = ref(db,"chat");
-    // ->多重構造に（階層化）する際は、chat/memo1/memo2のような書き方をする
- 
-
-
-    // 送信ボタンを押した時のイベントを作成する
-    $("#send").on("click",function(){
-        const crrentTime = new Date().toString(); //現在の時刻を取得
-
-        const msg = {
-            // constの中でconstは宣言しない。また、＝も使わず：で代入をする。{}内では;を使うと行末になってしまうので、,にする
-            uname : $("#uname").val(),
-            text : $("#text").val(),
-            timestamp : crrentTime // 現在の時刻をメッセージに追加する
-            // replies : [] //返信用の空の配列を追加する
-        };
-        // チャットデータをFirebase Realtime Databaseに保存する
-        // どこにデータを入れたいのか →変数dbRefで、chatに入れたい 
-        const newPostRef = push(dbRef); //Firebaseの中にユニークキーを生成(発行される) -> ユニークキーを発行しない場合はこの部分を削除するが、これがないと毎回データがされる
-        set(newPostRef,msg); // DBに値をセットする。newPostRefにmsgを格納する →ユニークキーを発行しない場合はdbRefを利用するとデータが入る
-    });
-
-    //入力されたデータを表示する
-    onChildAdded(dbRef,function(data){
-        const msg = data.val();  //dbRefでチャットを監視する。ここにデータが入ってきたら、データという関数をmsgに代入する
-        const key = data.key; // ユニークキーを持ってくる 削除・更新に必須
-        
-
-
-        let h = '<div id = "'+key+'">';
-            h += '<p>' + msg.uname + '</p>';
-            h +='<br>';
-            // h += '<p>' + msg.text + ": " + '</p>';
-            // メッセージ編集用の入力フィールドを表示
-            h += '<span contentEditable = "true" id = "'+key+'_update" > '+ msg.text +'</span>';
-
-        // 時刻をフォーマット化して表示する
-        var timestamp = new Date(msg.timestamp);
-        var formattedTime = timestamp.toLocaleString('ja-JP', { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-            h += '<p>' +formattedTime +  '</p>';
-
-            
-            // h += '<span class = "remove" date-key = "'+key+'"> 🐈</span>'
-            // h += '<span class = "update" date-key = "'+key+'"> 🐶</span>'
-            // h += '</div>';
-            
-     
-
-        
-            // h += '<span contentEditable="true" id="' + key + '_update">' + msg.text + '</span>'; 
-            
-            // 削除ボタンを追加する
-            h += '<button class = "remove" date-key = "'+key+'"> 削除</button>';
-
-            // 更新ボタンを追加する
-            h += '<button class = "update" date-key = "'+key+'"> 更新</button>';
-
-            // 返信ボタンを追加する
-            h += '<button class="reply-btn" data-key="' + key + '">返信</button>';
-            // 返信フォームを非表示にする
-            h += '<div class="reply-form" style="display: none;">'; 
-
-        $("#output").prepend(h);
-        });
-
-            // // 返信内容を入力するためのブロックを追加する
-            // // 返信内容を含むdivを追加
-            // h += '<div class="replies-container">'; 
-            // // // 返信内容の表示する
-            // msg.replies.forEach(function (reply){
-            //     // 返信内容を表示
-            //     h += '<p>' + reply.uname + ": " + reply.text + '</p>'; 
-                
-            // // チャット内容を表示   
-           
-
-
-            //     // replyの時刻をフォーマット化して表示する
-            //     var replyTimestamp = new Date(reply.timestamp);
-            //     var formattedReplyTime = replyTimestamp.toLocaleString('ja-JP', { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-            //     // 返信した時刻を表示する
-            //     h += '<p>' + formattedReplyTime + '</p>'; 
-            //     // 各返信のdivを閉じる
-            //     h += '</div>';
-
-            //     });
-            // // 返信フォームを閉じる
-            // h += '</div>';
-
-            //    // 返信フォームを追加
-            // h += '<input type="text" class="reply-input" placeholder="返信を入力">';
-            // h += '<button class="submit-reply-btn" data-key="' + key + '">返信を送信</button>';
-            // h += '</div>'; // 返信フォームを閉じる
-
-            // h += '</div>'; // メインのコメントを閉じる
-         
-        
-
-
-           
-       
-           
-        
- 
-   
-
-    // 削除イベント
-    $("#output").on("click", ".remove", function(){
-        const key = $(this).attr("date-key");
-        const remove_item = ref(db, "chat/"+key);
-        remove(remove_item); //Firebaseデータ削除関数
-    });
-
-
-    // 更新イベント
-    $("#output").on("click", ".update", function(){
-        const key = $(this).attr("date-key");
-        update (ref(db, "chat/"+key),{
-            text: $("#" + key + '_update').html()
-        });
-    });
-
-    // 削除処理がFirebase側で実行されたらイベントが発生する
-    onChildRemoved(dbRef, (data) => {
-        $("#"+ data.key).remove();
-    });
-
-    // 削除処理がFirebase側で実行されたらイベントが発生する
-    onChildChanged(dbRef, (data) => {
-        $("#"+ data.key+'_update').html(data.val().text);
-        $("#"+ data.key+'_update').fadeOut(800).fadeIn(800);
-    });
-
-    // "#send"（セレクター）
-  </script>
-
-
-
-
-
-
-
-
-
-
-
+    </main>
 </body>
+
+
 </html>
-
-
-
-<!-- 
-// これ実装したい
-https://qiita.com/taketakekaho/items/52b7c196ddbd4cb3c968 -->
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

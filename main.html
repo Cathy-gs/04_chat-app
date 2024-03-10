@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>Firebase_version9_RealtimeDB(G'sACADEMY初学者用サンプル)</title>
+<link rel="stylesheet" href="css/reset.css">
+<link rel="stylesheet" href="css/style_main.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kaisei+Opti&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- コンテンツ表示画面 -->
+
+<div class="input-area">
+    <div class="input-area_main">
+        <div class="input-area_main_visual">
+            <a href="https://tabelog.com/tokyo/A1303/A130301/13180281/" target="_blank"><img src="img/lunch.png" alt="" ></a>
+        </div>
+        <div class="input-area_main_message">
+            <h2>今日ここ行く人、12:00にお店前集合！</h2>
+        </div>
+        <p>10:24 from キャシー</p>
+        <div class="input-area_message_area">
+            <input class="name" type="text" id="uname" placeholder="なまえを入れてね！"> 
+             <!-- <input class="instagram" type="url" id="url" placeholder="Instagramのリンク"> -->
+  
+           <textarea id="text" cols="30" rows="10" placeholder="メッセージをどうぞ"></textarea>
+        </div>
+        <button id="send">送る！</button>
+    </div>
+    <div id="output" style="overflow: auto; height: 300px;"></div>
+</div>
+<!--/ コンテンツ表示画面 -->
+
+
+
+<!-- JQuery -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<!-- JQuery -->
+
+
+<!--** 以下Firebase **-->
+
+<!-- Firebaseから貼り付け -->
+<script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    // ここに書いた関数しか使えない
+    import { getDatabase, ref, push, set, update, onChildAdded, remove, onChildChanged, onChildRemoved  } 
+    // 関数の参照元 バージョンを合わせる
+    from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+   
+    // TODO: Add SDKs for Firebase products that you want to use
+    // https://firebase.google.com/docs/web/setup#available-libraries
+  
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyA1he7xQoZcPyBcI9wYC5BZk9sK6y0nBo4",
+      authDomain: "example-8a6aa.firebaseapp.com",
+      projectId: "example-8a6aa",
+      storageBucket: "example-8a6aa.appspot.com",
+      messagingSenderId: "881670600379",
+      appId: "1:881670600379:web:a6536c2bf6e66ec1719b9e"
+    };
+  
+    // Initialize Firebase
+    // FireBaseに接続する
+    const app = initializeApp(firebaseConfig);
+
+    // リアルタイムDBに接続する
+    const db = getDatabase(app);
+    const dbRef = ref(db,"chat");
+    // ->多重構造に（階層化）する際は、chat/memo1/memo2のような書き方をする
+ 
+
+
+    // 送信ボタンを押した時のイベントを作成する
+    $("#send").on("click",function(){
+        const crrentTime = new Date().toString(); //現在の時刻を取得
+
+        const msg = {
+            // constの中でconstは宣言しない。また、＝も使わず：で代入をする。{}内では;を使うと行末になってしまうので、,にする
+            uname : $("#uname").val(),
+            text : $("#text").val(),
+            // url : $("#url").val(),
+            timestamp : crrentTime, // 現在の時刻をメッセージに追加する
+            likes : 0
+           
+        };
+        // チャットデータをFirebase Realtime Databaseに保存する
+        // どこにデータを入れたいのか →変数dbRefで、chatに入れたい 
+        const newPostRef = push(dbRef); //Firebaseの中にユニークキーを生成(発行される) -> ユニークキーを発行しない場合はこの部分を削除するが、これがないと毎回データがされる
+        set(newPostRef,msg); // DBに値をセットする。newPostRefにmsgを格納する →ユニークキーを発行しない場合はdbRefを利用するとデータが入る
+    });
+
+    //入力されたデータを表示する
+    onChildAdded(dbRef,function(data){
+        const msg = data.val();  //dbRefでチャットを監視する。ここにデータが入ってきたら、データという関数をmsgに代入する
+        const key = data.key; // ユニークキーを持ってくる 削除・更新に必須
+        
+
+
+        let h = '<div id = message_area>'
+            h +='<div id = "'+key+'">';
+            h += '<p>' + msg.uname + '</p>';
+            h +='<br>';
+            // h += '<p>' + msg.text + ": " + '</p>';
+            // メッセージ編集用の入力フィールドを表示
+            h += '<span contentEditable = "true" id = "'+key+'_update" ><p> '+ msg.text +'</p></span>';
+
+        // 時刻をフォーマット化して表示する
+        var timestamp = new Date(msg.timestamp);
+        var formattedTime = timestamp.toLocaleString('ja-JP', { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+            h += '<p>' +formattedTime +  '</p>';
+            
+
+            
+            // h += '<span class = "remove" date-key = "'+key+'"> 🐈</span>'
+            // h += '<span class = "update" date-key = "'+key+'"> 🐶</span>'
+            // h += '</div>';
+            
+     
+
+        
+            // h += '<span contentEditable="true" id="' + key + '_update">' + msg.text + '</span>'; 
+            
+            // 削除ボタンを追加する
+            h += '<button class = "remove" date-key = "'+key+'"> 削除</button>';
+
+            // 更新ボタンを追加する
+            h += '<button class = "update" date-key = "'+key+'"> 更新</button>';
+
+            h += '<button class="like" data-key="' + key + '">行ける人</button>';
+            h += '<span id="' + key + '_likes">' + (msg.likes || 0) + '</span>';
+        $("#output").prepend(h);
+        });
+ 
+  
+
+    // 削除イベント
+    $("#output").on("click", ".remove", function(){
+        const key = $(this).attr("date-key");
+        const remove_item = ref(db, "chat/"+key);
+        remove(remove_item); //Firebaseデータ削除関数
+    });
+
+
+    // 更新イベント
+    $("#output").on("click", ".update", function(){
+        const key = $(this).attr("date-key");
+        update (ref(db, "chat/"+key),{
+            text: $("#" + key + '_update').html()
+        });
+    });
+
+    // Likeイベント
+    $('#output').on('click', '.like', function() {
+        const key = $(this).attr('data-key');
+        let countTags = btn.getElementsByClassName('likes');
+        let count = snapshot.val();
+            // 値がなときは0
+            if( count === null ) count = 0;
+            // いいね数の表示
+            countTags[0].textContent = count;
+        
+    }); 
+
+    // 削除処理がFirebase側で実行されたらイベントが発生する
+    onChildRemoved(dbRef, (data) => {
+        $("#"+ data.key).remove();
+    });
+
+    // 削除処理がFirebase側で実行されたらイベントが発生する
+    onChildChanged(dbRef, (data) => {
+        $("#"+ data.key+'_update').html(data.val().text);
+        $("#"+ data.key+'_update').fadeOut(800).fadeIn(800);
+    });
+
+    // "#send"（セレクター）
+  </script>
+
+
+</body>
+</html>
+
+
+
+<!-- 
+// これ実装したい
+https://qiita.com/taketakekaho/items/52b7c196ddbd4cb3c968 -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
